@@ -6,6 +6,14 @@ using JSON
 
 SQLITE_FILE = "cell_time_series.sqlite"
 
+struct SeriesEntry
+  second::Int64
+  fco2::Float64
+end
+
+SeriesEntry(date::DateTime, fco2::Float64) =
+  SeriesEntry(secondofday(date), fco2)
+
 function main()
   db = init_db()
 
@@ -27,7 +35,7 @@ function main()
   expocode = ""
   year = 999
   doy = 999
-  series = Vector{Float64}()
+  series = Vector{SeriesEntry}[]
 
   # Loop until we fall off the end of the file
   eof = false
@@ -90,10 +98,10 @@ function main()
         expocode = lineexpocode
         year = lineyear
         doy = linedoy
-        series = [fco2]
+        series = [SeriesEntry(linetime, fco2)]
       else
         # Add the fco2 to the current series
-        push!(series, fco2)
+        push!(series, SeriesEntry(linetime, fco2))
       end
     end
 
@@ -119,17 +127,18 @@ function dayofyear(date)
 end
 
 function writeseries(db, lon, lat, expocode, year, doy, series)
-  #  println(
-  #    "INSERT INTO timeseries VALUES " *
-  #    "($(lon), $(lat), '$(expocode)', $(year), $(doy), '$(JSON.json(series))')",
-  #  )
-
-  SQLite.execute(
-    db,
-    "INSERT INTO timeseries VALUES " *
-    "($(lon), $(lat), '$(expocode)', $(year), $(doy), '$(JSON.json(series))')",
-  )
+  if lon != 999
+    SQLite.execute(
+      db,
+      "INSERT INTO timeseries VALUES " *
+      "($(lon), $(lat), '$(expocode)', $(year), $(doy), '$(JSON.json(series))')",
+    )
+  end
   return nothing
+end
+
+function secondofday(date)
+  return hour(date) * 3600 + minute(date) * 60 + second(date)
 end
 
 function init_db()
