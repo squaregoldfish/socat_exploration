@@ -2,6 +2,7 @@ using SQLite
 using NCDatasets
 using DataStructures
 using DataFrames
+using ProgressMeter
 
 NC_FILE = "diel_biases.nc"
 DB_FILE = "cell_time_series.sqlite"
@@ -14,11 +15,13 @@ Run `make_cell_time_series.jl` first to generate time series data from the
 raw SOCAT file.
 """
 function main()
+  println("Initialising netCDF...")
   nc = init_netcdf()
 
-  # Connect to database
+  println("Connecting to database...")
   db = SQLite.DB(DB_FILE)
 
+  println("Extracting time series counts...")
   extract_timeseries_counts(nc, db)
 
   close(nc)
