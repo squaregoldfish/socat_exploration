@@ -4,15 +4,10 @@ using Tables
 using Dates
 using JSON
 
+include("SocatTimeSeries.jl")
+using .SocatTimeSeries
+
 SQLITE_FILE = "cell_time_series.sqlite"
-
-struct SeriesEntry
-  second::Int64
-  fco2::Float64
-end
-
-SeriesEntry(date::DateTime, fco2::Float64) =
-  SeriesEntry(secondofday(date), fco2)
 
 function main()
   db = init_db()
@@ -28,6 +23,9 @@ function main()
     ProgressMeter.next!(prog)
     colheadersfound = startswith(line, "Expocode\tversion\tSource_DOI")
   end
+
+  # Start a transaction
+  SQLite.transaction(db)
 
   # Cell time series details
   lon = 999
@@ -108,6 +106,8 @@ function main()
     ProgressMeter.next!(prog)
   end
 
+  # End the transaction and tidy up
+  SQLite.commit(db)
   ProgressMeter.finish!(prog)
   close(infile)
   close(db)
@@ -135,10 +135,6 @@ function writeseries(db, lon, lat, expocode, year, doy, series)
     )
   end
   return nothing
-end
-
-function secondofday(date)
-  return hour(date) * 3600 + minute(date) * 60 + second(date)
 end
 
 function init_db()
