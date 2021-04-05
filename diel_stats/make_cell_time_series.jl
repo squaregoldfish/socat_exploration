@@ -2,7 +2,6 @@ using ProgressMeter
 using SQLite
 using Tables
 using Dates
-using JSON
 
 include("SocatTimeSeries.jl")
 using .SocatTimeSeries
@@ -131,7 +130,7 @@ function writeseries(db, lon, lat, expocode, year, doy, series)
     SQLite.execute(
       db,
       "INSERT INTO timeseries VALUES " *
-      "($(lon), $(lat), '$(expocode)', $(year), $(doy), '$(JSON.json(series))')",
+      "($(lon), $(lat), '$(expocode)', $(year), $(doy), '$(tostring(series))')",
     )
   end
   return nothing
