@@ -64,7 +64,7 @@ function extract_timeseries_counts(nc, db)
 
   # Get the counts from the database
   tscounts = DBInterface.execute(db,
-      "SELECT lon, lat, COUNT(series) AS seriescount FROM timeseries " *
+      "SELECT lon, lat, COUNT(minuteseries) AS seriescount FROM timeseries " *
       "GROUP BY lon, lat"
     ) |> DataFrame
 

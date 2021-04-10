@@ -32,7 +32,7 @@ function main()
   expocode = ""
   year = 999
   doy = 999
-  series = Vector{SeriesEntry}[]
+  series = SeriesEntry[]
 
   # Loop until we fall off the end of the file
   eof = false
@@ -127,10 +127,14 @@ end
 
 function writeseries(db, lon, lat, expocode, year, doy, series)
   if lon != 999
+
+    minuteseries = makeminuteseries(series)
+
     SQLite.execute(
       db,
       "INSERT INTO timeseries VALUES " *
-      "($(lon), $(lat), '$(expocode)', $(year), $(doy), '$(tostring(series))')",
+      "($(lon), $(lat), '$(expocode)', $(year), $(doy), '$(tostring(series))', " *
+      "'$(tostring(minuteseries))')"
     )
   end
   return nothing
@@ -144,8 +148,8 @@ function init_db()
   db = SQLite.DB(SQLITE_FILE)
 
   timeseriestable = Tables.Schema(
-    (:lon, :lat, :expocode, :year, :doy, :series),
-    Tuple{Int64,Int64,String,Int64,Int64,String},
+    (:lon, :lat, :expocode, :year, :doy, :secondseries, :minuteseries),
+    Tuple{Int64,Int64,String,Int64,Int64,String,String},
   )
 
   SQLite.createtable!(db, "timeseries", timeseriestable)
