@@ -24,7 +24,6 @@ function main()
   SQLite.transaction(db)
 
   eof = false
-
   while !eof
 
     # Read the next line
@@ -66,7 +65,6 @@ function main()
         second,
       )
       doy = dayofyear(linetime)
-      secofday = secondofday(linetime)
       minofday = minuteofday(linetime)
 
       sst = parse(Float64, fields[15])
@@ -75,7 +73,7 @@ function main()
 
       SQLite.execute(db,
       "INSERT INTO socat VALUES " *
-      "($lonindex, $latindex, $year, $doy, $secofday, $minofday, '$expocode', " *
+      "($lonindex, $latindex, $year, $doy, $minofday, '$expocode', " *
       "$(isnan(sst) ? "NULL" : sst), $(isnan(sss) ? "NULL" : sss), " *
       "$(isnan(fco2) ? "NULL" : fco2))"
     )
@@ -109,19 +107,15 @@ function initdb()::SQLite.DB
   db = SQLite.DB(SQLITE_FILE)
 
   timeseriestable = Tables.Schema(
-    (:lonindex, :latindex, :year, :dayofyear, :secondofday, :minuteofday,
+    (:lonindex, :latindex, :year, :dayofyear, :minuteofday,
      :expocode, :sst, :sss, :fco2),
-    Tuple{Int64,Int64,Int64,Int64,Int64,Int64,
-    String,Union{Missing,Float64},Union{Missing,Float64},Union{Missing,Float64}}
+    Tuple{Int64,Int64,Int64,Int64,Int64,
+      String,Union{Missing,Float64},Union{Missing,Float64},Union{Missing,Float64}}
   )
 
   SQLite.createtable!(db, "socat", timeseriestable)
 
   return db
-end
-
-function secondofday(date::DateTime)::Int64
-  return hour(date) * 3600 + minute(date) * 60 + second(date)
 end
 
 function minuteofday(date::DateTime)::Int64
