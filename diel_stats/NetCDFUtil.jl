@@ -48,7 +48,7 @@ Make a variable using lon/lat dimensions in the specified netCDF file
 """
 function makevar(nc::NCDataset, name::String, type::Type)::NCDatasets.CFVariable
   return defVar(nc, name, type, ["longitude", "latitude"],
-    attrib = OrderedDict("_FillValue" => -999))
+    attrib = OrderedDict("_FillValue" => convert(type, -999)))
 end
 
 end
