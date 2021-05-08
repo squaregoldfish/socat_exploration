@@ -20,7 +20,7 @@ into a database for easier interrogation.
 function main()
   println("Initialising netCDF...")
   nc, meanvar = initnetcdf(NC_FILE, "minute_mean", Float64)
-  #sdvar = makevar(nc, "minute_stdev", Float64)
+  R̅var = makevar(nc, "minute_R̅", Float64)
 
   println("Connecting to database...")
   db = SQLite.DB(DB_FILE)
@@ -50,7 +50,9 @@ function main()
 
     if rowlon != currentlon || rowlat != currentlat
       if currentlon != -999
-        meanvar[currentlon, currentlat] = meanminute(cellminutes)
+        celldegrees = cellminutes .* 0.25
+        meanvar[currentlon, currentlat] = meandegree(celldegrees) * 4
+        R̅var[currentlon, currentlat] = R̅(celldegrees)
       end
 
       currentlon = rowlon
@@ -64,7 +66,9 @@ function main()
   end
 
   # Write last count
-  meanvar[currentlon, currentlat] = meanminute(cellminutes)
+  celldegrees = cellminutes .* 0.25
+  meanvar[currentlon, currentlat] = meandegree(celldegrees) * 4
+  R̅var[currentlon, currentlat] = R̅(celldegrees)
 
   finish!(prog)
   close(nc)
@@ -75,18 +79,25 @@ end
 """
 Calculate the mean minute of day from a series of minutes
 """
-function meanminute(minutes::Vector{Int64})::Float64
+function meandegree(degrees::Vector{Float64})::Float64
 
-  # Convert all minutes to degrees
-  inputdegrees = minutes .* 0.25
-  meandegree = rad2deg(atan(mean(sind.(inputdegrees)),
-    mean(cosd.(inputdegrees))))
+  meandegree = rad2deg(atan(mean(sind.(degrees)),
+    mean(cosd.(degrees))))
 
   if meandegree < 0
     meandegree = 360 - abs(meandegree)
   end
 
-  return meandegree * 4
+  return meandegree
 end
 
+"""
+Calculate the standard deviation of a series of minutes
+"""
+function R̅(degrees::Vector{Float64})::Float64
+  C = sum(cosd.(degrees))
+  S = sum(sind.(degrees))
+  R = sqrt(C^2 + S^2)
+  return R / length(degrees)
+end
 main()
