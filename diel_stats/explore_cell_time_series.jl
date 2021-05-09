@@ -5,7 +5,13 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 9c288f31-bf08-4817-b467-19cde8a9d2b6
-using PlutoUI
+begin
+	using PlutoUI
+	using NCDatasets
+	using Statistics
+	using Plots
+	gr()
+end
 
 # ╔═╡ e7955031-cf60-44a9-8f5f-1162862ecbc8
 md"""
@@ -54,8 +60,35 @@ $(LocalResource("./mean_minute.png"))
 ### R̅
 The R̅ computed for a grid cell is a measure of how widely distributed the measurements are throughout the day. R̅ is a value between 0 and 1, where 0 indicates a wide distribution throughout the day and 1 indicating that measurements are concentrated around a particular time. The map below shows the R̅ for each grid cell.
 $(LocalResource("./Rbar.png"))
+
+We would expect the cells with the most time series to have a greater distribution of measurements around the clock (R̅ close to zero) than those with few time series. However, this isn't the case:
 """
+
+# ╔═╡ 2cd2ad52-678f-4e94-8c8a-73134e4b5e31
+begin
+	# Read the data from netCDF into matrices
+	timeseriescount = Dataset("./time_series_count.nc")["count"][:,:]
+	R̅ = Dataset("./mean_sd_minute.nc")["minute_R̅"][:,:]
+	
+	# Strip out the missing values
+	timeseriescount = collect(skipmissing(timeseriescount))
+	R̅ = collect(skipmissing(R̅))
+	
+	md"""
+	Time Series Count/R̅ correlation =  $(cor(timeseriescount, R̅))
+	"""
+end
+
+# ╔═╡ 9f8929b5-5b81-401c-9edc-8536cfd4005e
+# Make the scatter plot
+scatter(timeseriescount, R̅, label="", xlabel="Time Series Count", ylabel="R̅")
+
+# ╔═╡ 01a80189-c661-456f-81d4-4e837128cef9
+histogram(R̅, label="", title="Distribution of R̅", xlabel="R̅", ylabel="Count")
 
 # ╔═╡ Cell order:
 # ╠═9c288f31-bf08-4817-b467-19cde8a9d2b6
 # ╟─e7955031-cf60-44a9-8f5f-1162862ecbc8
+# ╠═2cd2ad52-678f-4e94-8c8a-73134e4b5e31
+# ╠═9f8929b5-5b81-401c-9edc-8536cfd4005e
+# ╠═01a80189-c661-456f-81d4-4e837128cef9
