@@ -64,7 +64,13 @@ function main()
         minute,
         second,
       )
+
       doy = dayofyear(linetime)
+
+      if isleapyear(linetime) && ((month == 2 && day == 29) || month > 2)
+        doy -= 1
+      end
+
       minofday = minuteofday(linetime)
 
       sst = parse(Float64, fields[15])
