@@ -1,0 +1,81 @@
+// BETA BETA BETA
+// Script parsed by PanoplyCL to create a plot. Usage:
+// java -jar PanoplyCL.jar Rbar.pcl
+
+// Open a dataset.
+var ncfile1 = panoply.openDataset ( "/home/stevej/science/socat_exploration/diel_stats/mean_sd_minute.nc" );
+
+// Select a variable.
+var ncvar1 = ncfile1.getVariable ( "minute_R̅" );
+
+// Create the plot.
+var myplot = panoply.createPlot ( "lonlat", ncvar1 );
+
+
+// Specify plot settings.
+myplot.set ( "size-factor", 140 );
+myplot.set ( "size-width", 100 );
+myplot.set ( "size-height", 50 );
+myplot.set ( "color-background", "white" );
+
+myplot.set ( "labels-font", "SansSerif" );
+myplot.set ( "labels-super10", false );
+
+myplot.set ( "title-text", "R̅" );
+
+myplot.set ( "interpolate", false );
+myplot.set ( "scale-method", "SCALAR" );
+myplot.set ( "scale-exponent", 0 );
+myplot.set ( "scale-min", 1.0E-50 );
+myplot.set ( "scale-max", 1.0 );
+myplot.set ( "scale-div-major", 5 );
+myplot.set ( "scale-div-minor", 2 );
+myplot.set ( "scale-tick-size", 11.0 );
+myplot.set ( "scale-tick-format", "%.1f" );
+myplot.set ( "scale-label-custom", true );
+myplot.set ( "scale-label-text", "R̅" );
+myplot.set ( "scale-label-size", 14.0 );
+
+myplot.set ( "colorbar-name", "CB_YlOrRd.cpt" );
+myplot.set ( "colorbar-invalids", "rgb(191,191,191)" );
+myplot.set ( "colorbar-reverse", false );
+myplot.set ( "colorbar-length", 60 );
+myplot.set ( "colorbar-border-weight", 100 );
+myplot.set ( "colorbar-outlier-side", "both" );
+myplot.set ( "colorbar-outlier-shape", "triangle" );
+myplot.set ( "colorbar-outlier-gap", "thin" );
+myplot.set ( "scale-label-location", "above" );
+
+myplot.set ( "proj-name", "Mollweide" );
+myplot.set ( "proj-lon0", -160.0 );
+myplot.set ( "proj-lat0", 0.0 );
+myplot.set ( "proj-xparam-1", "OCEANS" );
+myplot.set ( "proj-xparam-2", false );
+myplot.set ( "border-weight", 150 );
+
+myplot.set ( "proj-shading-vis", false );
+
+myplot.set ( "overlay-1-weight", 75 );
+myplot.set ( "overlay-1-name", "Earth_mask.gif" );
+myplot.set ( "overlay-1-color", "black" );
+myplot.set ( "overlay-1-invert", false );
+myplot.set ( "overlay-2-weight", 0 );
+myplot.set ( "overlay-3-weight", 0 );
+
+myplot.set ( "grid-weight", 50 );
+myplot.set ( "grid-style", "solid" );
+myplot.set ( "grid-color", "black" );
+myplot.set ( "grid-spacing-lon", 15.0 );
+myplot.set ( "grid-spacing-lat", 15.0 );
+myplot.set ( "grid-offset-lat", false );
+myplot.set ( "grid-label-step", 0 );
+myplot.set ( "grid-label-size", 6.5 );
+
+myplot.set ( "contour-weight", 0 );
+
+myplot.set ( "footnote-minmax-vis", false );
+myplot.set ( "footnote-minmax-format", "Same" );
+myplot.set ( "footnote-right", "Made with Panoply" );
+
+// Save plot image to disk.
+myplot.saveImage ( "PNG", "Rbar.png" );
