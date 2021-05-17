@@ -8,6 +8,7 @@ using InteractiveUtils
 begin
 	using PlutoUI
 	using NCDatasets
+	using DataFrames
 	using Statistics
 	using Plots
 	gr()
@@ -60,7 +61,10 @@ $(LocalResource("./mean_minute.png"))
 ### R̅
 The R̅ computed for a grid cell is a measure of how widely distributed the measurements are throughout the day. R̅ is a value between 0 and 1, where 0 indicates a wide distribution throughout the day and 1 indicating that measurements are concentrated around a particular time. The map below shows the R̅ for each grid cell.
 $(LocalResource("./Rbar.png"))
+"""
 
+# ╔═╡ 5bd8bd70-97b3-4831-a143-ca752bfda8f2
+md"""
 We would expect the cells with the most time series to have a greater distribution of measurements around the clock (R̅ close to zero) than those with few time series. However, this isn't the case:
 """
 
@@ -71,24 +75,58 @@ begin
 	R̅ = Dataset("./mean_sd_minute.nc")["minute_R̅"][:,:]
 	
 	# Strip out the missing values
-	timeseriescount = collect(skipmissing(timeseriescount))
-	R̅ = collect(skipmissing(R̅))
+	timeseriescount_nomissing = collect(skipmissing(timeseriescount))
+	R̅_nomissing = collect(skipmissing(R̅))
 	
 	md"""
-	Time Series Count/R̅ correlation =  $(cor(timeseriescount, R̅))
+	Time Series Count/R̅ correlation =  $(cor(timeseriescount_nomissing, R̅_nomissing))
 	"""
 end
 
+# ╔═╡ 01a80189-c661-456f-81d4-4e837128cef9
+histogram(R̅_nomissing, label="", bins=50, title="Distribution of R̅", xlabel="R̅", ylabel="Count")
+
 # ╔═╡ 9f8929b5-5b81-401c-9edc-8536cfd4005e
 # Make the scatter plot
-scatter(timeseriescount, R̅, label="", xlabel="Time Series Count", ylabel="R̅")
+scatter(timeseriescount_nomissing, R̅_nomissing, label="", xlabel="Time Series Count (log₁₀)", ylabel="R̅", xscale=:log10)
 
-# ╔═╡ 01a80189-c661-456f-81d4-4e837128cef9
-histogram(R̅, label="", title="Distribution of R̅", xlabel="R̅", ylabel="Count")
+# ╔═╡ 05be1e24-5407-4787-9e34-00206a9afd45
+md"""
+## Cell Exploration
+Below we can explore some details of specific grid cells. First up, a list of all the cells and their details. Below we build a table of all the cells.
+"""
+
+# ╔═╡ ebf3c86c-f4aa-418f-a57c-e002452574b6
+begin
+	# Open the netCDF files and load the variables we want	
+	counts = Dataset("time_series_count.nc", "r")["count"]
+	R̅s = Dataset("mean_sd_minute.nc", "r")["minute_R̅"]
+	
+	# Initialise the DataFrame we'll use for display
+	celllist = DataFrame(Lon = String[], Lat = String[],
+		TimeSeriesCount = Int64[], R̅ = Float64[])
+
+	# Extract the data
+	for lon in 1:360
+		for lat in 1:180
+			if !ismissing(counts[lon, lat])
+				push!(celllist, ("$lon", "$lat", counts[lon, lat], R̅s[lon, lat]))
+			end
+		end
+	end
+	
+	# Sort by R̅ and time series count
+	sort!(celllist, [:TimeSeriesCount, :R̅], rev=(true, false))
+	
+	celllist
+end
 
 # ╔═╡ Cell order:
 # ╠═9c288f31-bf08-4817-b467-19cde8a9d2b6
 # ╟─e7955031-cf60-44a9-8f5f-1162862ecbc8
+# ╠═01a80189-c661-456f-81d4-4e837128cef9
+# ╟─5bd8bd70-97b3-4831-a143-ca752bfda8f2
 # ╠═2cd2ad52-678f-4e94-8c8a-73134e4b5e31
 # ╠═9f8929b5-5b81-401c-9edc-8536cfd4005e
-# ╠═01a80189-c661-456f-81d4-4e837128cef9
+# ╟─05be1e24-5407-4787-9e34-00206a9afd45
+# ╠═ebf3c86c-f4aa-418f-a57c-e002452574b6
