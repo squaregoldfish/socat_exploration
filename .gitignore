@@ -26,3 +26,4 @@ Manifest.toml
 **/SOCATv2020.tsv
 **/*sqlite
 **/*nc
+.ipynb_checkpoints
