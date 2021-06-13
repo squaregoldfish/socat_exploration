@@ -11,7 +11,7 @@ begin
 	using DataFrames
 	using Statistics
 	using Plots
-	gr()
+	plotly()
 end
 
 # ╔═╡ e7955031-cf60-44a9-8f5f-1162862ecbc8
@@ -88,38 +88,13 @@ histogram(R̅_nomissing, label="", bins=50, title="Distribution of R̅", xlabel=
 
 # ╔═╡ 9f8929b5-5b81-401c-9edc-8536cfd4005e
 # Make the scatter plot
-scatter(timeseriescount_nomissing, R̅_nomissing, label="", xlabel="Time Series Count (log₁₀)", ylabel="R̅", xscale=:log10)
+scatter(timeseriescount_nomissing, R̅_nomissing, label="", xlabel="Time Series Count (log₁₀)", ylabel="R̅", xscale=:log10, markerstrokewidth=0)
 
 # ╔═╡ 05be1e24-5407-4787-9e34-00206a9afd45
 md"""
 ## Cell Exploration
-Below we can explore some details of specific grid cells. First up, a list of all the cells and their details. Below we build a table of all the cells.
+Below we can explore some details of specific grid cells. Hover over a point in the plot above to get a lon/lat value, and enter them below:
 """
-
-# ╔═╡ ebf3c86c-f4aa-418f-a57c-e002452574b6
-begin
-	# Open the netCDF files and load the variables we want	
-	counts = Dataset("time_series_count.nc", "r")["count"]
-	R̅s = Dataset("mean_sd_minute.nc", "r")["minute_R̅"]
-	
-	# Initialise the DataFrame we'll use for display
-	celllist = DataFrame(Lon = String[], Lat = String[],
-		TimeSeriesCount = Int64[], R̅ = Float64[])
-
-	# Extract the data
-	for lon in 1:360
-		for lat in 1:180
-			if !ismissing(counts[lon, lat])
-				push!(celllist, ("$lon", "$lat", counts[lon, lat], R̅s[lon, lat]))
-			end
-		end
-	end
-	
-	# Sort by R̅ and time series count
-	sort!(celllist, [:TimeSeriesCount, :R̅], rev=(true, false))
-	
-	celllist
-end
 
 # ╔═╡ Cell order:
 # ╠═9c288f31-bf08-4817-b467-19cde8a9d2b6
@@ -129,4 +104,3 @@ end
 # ╠═2cd2ad52-678f-4e94-8c8a-73134e4b5e31
 # ╠═9f8929b5-5b81-401c-9edc-8536cfd4005e
 # ╟─05be1e24-5407-4787-9e34-00206a9afd45
-# ╠═ebf3c86c-f4aa-418f-a57c-e002452574b6
