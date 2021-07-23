@@ -3,7 +3,7 @@
 // java -jar PanoplyCL.jar time_series_count.pcl
 
 // Open a dataset.
-var ncfile1 = panoply.openDataset ( "/home/stevej/science/socat_exploration/diel_stats/time_series_count.nc" );
+var ncfile1 = panoply.openDataset ( "/home/stevej/science/socat_exploration/diel_stats/time_series_info.nc" );
 
 // Select a variable.
 var ncvar1 = ncfile1.getVariable ( "count" );
@@ -25,14 +25,12 @@ myplot.set ( "title-text", "Number of days with observations" );
 
 myplot.set ( "interpolate", false );
 myplot.set ( "scale-method", "LOG10" );
-myplot.set ( "scale-units", "<scalar>" );
 myplot.set ( "scale-exponent", 0 );
 myplot.set ( "scale-min", 1.0 );
-myplot.set ( "scale-max", 4108.0 );
+myplot.set ( "scale-max", 4109.0 );
 myplot.set ( "scale-tick-size", 11.0 );
-myplot.set ( "scale-tick-format", "%.1f" );
-myplot.set ( "scale-label-custom", true );
-myplot.set ( "scale-label-text", "Days" );
+myplot.set ( "scale-tick-format", "%.0f" );
+myplot.set ( "scale-label-custom", false );
 myplot.set ( "scale-label-size", 14.0 );
 
 myplot.set ( "colorbar-name", "panoply.act" );
@@ -40,9 +38,7 @@ myplot.set ( "colorbar-invalids", "rgb(191,191,191)" );
 myplot.set ( "colorbar-reverse", false );
 myplot.set ( "colorbar-length", 60 );
 myplot.set ( "colorbar-border-weight", 100 );
-myplot.set ( "colorbar-outlier-side", "both" );
-myplot.set ( "colorbar-outlier-shape", "triangle" );
-myplot.set ( "colorbar-outlier-gap", "thin" );
+myplot.set ( "colorbar-outlier-side", "NONE" );
 myplot.set ( "scale-label-location", "above" );
 
 myplot.set ( "proj-name", "Mollweide" );
@@ -62,7 +58,7 @@ myplot.set ( "overlay-2-weight", 0 );
 myplot.set ( "overlay-3-weight", 0 );
 
 myplot.set ( "grid-weight", 50 );
-myplot.set ( "grid-style", "SOLID" );
+myplot.set ( "grid-style", "solid" );
 myplot.set ( "grid-color", "black" );
 myplot.set ( "grid-spacing-lon", 15.0 );
 myplot.set ( "grid-spacing-lat", 15.0 );
@@ -72,9 +68,9 @@ myplot.set ( "grid-label-size", 6.5 );
 
 myplot.set ( "contour-weight", 0 );
 
-myplot.set ( "footnote-minmax-vis", false );
+myplot.set ( "footnote-minmax-vis", true );
 myplot.set ( "footnote-minmax-format", "Same" );
 myplot.set ( "footnote-right", "Made with Panoply" );
 
 // Save plot image to disk.
-myplot.saveImage ( "PNG", "count_in_time_series_count.png" );
+myplot.saveImage ( "PNG", "time_series_count.png" );

@@ -3,7 +3,7 @@
 // java -jar PanoplyCL.jar mean_minute.pcl
 
 // Open a dataset.
-var ncfile1 = panoply.openDataset ( "/home/stevej/science/socat_exploration/diel_stats/mean_sd_minute.nc" );
+var ncfile1 = panoply.openDataset ( "/home/stevej/science/socat_exploration/diel_stats/time_series_info.nc" );
 
 // Select a variable.
 var ncvar1 = ncfile1.getVariable ( "minute_mean" );
@@ -21,7 +21,7 @@ myplot.set ( "color-background", "white" );
 myplot.set ( "labels-font", "SansSerif" );
 myplot.set ( "labels-super10", false );
 
-myplot.set ( "title-text", "Mean Minute of Day of Observations" );
+myplot.set ( "title-text", "Mean minute of day of observations" );
 
 myplot.set ( "interpolate", false );
 myplot.set ( "scale-method", "SCALAR" );
@@ -31,9 +31,9 @@ myplot.set ( "scale-max", 1440.0 );
 myplot.set ( "scale-div-major", 5 );
 myplot.set ( "scale-div-minor", 2 );
 myplot.set ( "scale-tick-size", 11.0 );
-myplot.set ( "scale-tick-format", "%.1f" );
+myplot.set ( "scale-tick-format", "%.0f" );
 myplot.set ( "scale-label-custom", true );
-myplot.set ( "scale-label-text", "Minute of Day" );
+myplot.set ( "scale-label-text", "Minute of day" );
 myplot.set ( "scale-label-size", 14.0 );
 
 myplot.set ( "colorbar-name", "GMT_ocean_circular.cpt" );
@@ -78,4 +78,4 @@ myplot.set ( "footnote-minmax-format", "Same" );
 myplot.set ( "footnote-right", "Made with Panoply" );
 
 // Save plot image to disk.
-myplot.saveImage ( "PNG", "minute_mean_in_mean_sd_minute.png" );
+myplot.saveImage ( "PNG", "mean_minute.png" );

@@ -3,7 +3,7 @@
 // java -jar PanoplyCL.jar Rbar.pcl
 
 // Open a dataset.
-var ncfile1 = panoply.openDataset ( "/home/stevej/science/socat_exploration/diel_stats/mean_sd_minute.nc" );
+var ncfile1 = panoply.openDataset ( "/home/stevej/science/socat_exploration/diel_stats/time_series_info.nc" );
 
 // Select a variable.
 var ncvar1 = ncfile1.getVariable ( "minute_R̅" );
@@ -41,9 +41,7 @@ myplot.set ( "colorbar-invalids", "rgb(191,191,191)" );
 myplot.set ( "colorbar-reverse", false );
 myplot.set ( "colorbar-length", 60 );
 myplot.set ( "colorbar-border-weight", 100 );
-myplot.set ( "colorbar-outlier-side", "both" );
-myplot.set ( "colorbar-outlier-shape", "triangle" );
-myplot.set ( "colorbar-outlier-gap", "thin" );
+myplot.set ( "colorbar-outlier-side", "NONE" );
 myplot.set ( "scale-label-location", "above" );
 
 myplot.set ( "proj-name", "Mollweide" );
