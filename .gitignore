@@ -23,7 +23,7 @@ docs/site/
 # environment.
 Manifest.toml
 
-**/SOCATv2020.tsv
+**/SOCATv*.tsv
 **/*sqlite
 **/*nc
 .ipynb_checkpoints

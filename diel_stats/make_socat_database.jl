@@ -9,7 +9,7 @@ function main()
   db = initdb()
 
   # Open the file and skip the header
-  infile = open("SOCATv2020.tsv", "r")
+  infile = open("SOCATv2021.tsv", "r")
   prog = ProgressUnknown("Lines read:")
 
   # Skip headers
