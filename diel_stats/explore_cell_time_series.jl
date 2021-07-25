@@ -4,6 +4,15 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : missing
+        el
+    end
+end
+
 # ╔═╡ ac4b0cf6-a957-46e9-b11b-3d652590c612
 begin
 	# Set up plotting server
@@ -18,6 +27,7 @@ begin
 	using NCDatasets
 	using DataFrames
 	using Statistics
+	using SQLite
 
 	using WGLMakie
 	set_theme!(resolution=(680, 400))
@@ -27,15 +37,24 @@ end
 begin
 	# Load and prepare data
 	timeseriesinfonc = Dataset("./time_series_info.nc")
-	timeseriesinfo = DataFrame(lon=Float64[], lat=Float64[], pos=[], count=Float64[], R̅=Float64[])
+	timeseriesinfo = DataFrame(lon=Float64[], lat=Float64[], count=Float64[], R̅=Float64[])
 
 	for lon in 1:360
 		for lat in 1:180
 			if !ismissing(timeseriesinfonc["minute_R̅"][lon,lat])
-				push!(timeseriesinfo, [lon - 0.5, lat - 89.5, "$(lon - 0.5),$(lat - 89.5)", timeseriesinfonc["count"][lon,lat], timeseriesinfonc["minute_R̅"][lon,lat]])
+				push!(timeseriesinfo,
+					[lon - 0.5, lat - 89.5,
+						timeseriesinfonc["count"][lon,lat],
+						timeseriesinfonc["minute_R̅"][lon,lat]
+					]
+				)
 			end
 		end
 	end
+	
+	# Connect to SOCAT database
+	db = SQLite.DB("./socat.sqlite")
+	nothing
 end
 
 # ╔═╡ e7955031-cf60-44a9-8f5f-1162862ecbc8
@@ -105,22 +124,66 @@ begin
 	)
 
 	# Make the scatter plot
-	fig = Figure(resolution=(680,400))
-	axis = Axis(fig[1, 1], title="R̅ for cells with time series count ≥ $(mincount)",
+	R̅vscount = Figure(resolution=(680,400))
+	R̅vscountaxis = Axis(R̅vscount[1, 1], title="R̅ for cells with time series count ≥ $(mincount)",
 		xscale=log10, xlabel="Count", ylabel="R̅", ylims=(0,1))
 	scatter!(tsi_truncated.count, tsi_truncated.R̅)
 	
-	fig
+	R̅vscount
 end
+
+# ╔═╡ 943f1d23-c191-4d24-a785-3a98879babf3
+md"""
+## Cell Exploration
+"""
 
 # ╔═╡ b4ed129e-ed57-419f-a806-6052842a3258
 tsi_truncated
 
 # ╔═╡ 05be1e24-5407-4787-9e34-00206a9afd45
 md"""
-## Cell Exploration
-Below we can explore some details of specific grid cells. Explore the list of cells above and enter the lon/lat of one you're interested in:
+Below we can explore some details of specific grid cells. Look through the list of cells above and enter the lon/lat of one you're interested in:
+
+Lon: $(@bind celllon TextField())
+Lat: $(@bind celllat TextField())
+
 """
+
+# ╔═╡ 2be9f730-591e-4f01-ba7b-4831cd2bc0cc
+begin
+	# Retrieve cell info from database
+	measurements = DBInterface.execute(db,
+		"SELECT minuteofday, fco2 FROM socat WHERE lonindex = ? AND latindex = ?",
+		(parse(Float64, celllon) + 0.5, parse(Float64, celllat) + 89.5)
+	) |> DataFrame
+
+	hourbins = zeros(Int64, 24)
+	for m in measurements.minuteofday
+		hour = convert(Int64, trunc(m / 1440 * 24))
+		hourbins[hour + 1] += 1
+	end
+	
+	# Hours histogram
+	hourhist = Figure(resolution=(680,400))
+	hourhistaxis = Axis(hourhist[1, 1],
+		title="Distribution of measurements by hour of day",
+		xlabel="Hour of day", ylabel="# Measurements")
+	barplot!(collect(0:23), hourbins)
+	
+	hourhist
+end
+
+# ╔═╡ 654bd988-635b-4ca0-8d8f-0996d75c499f
+begin
+	fco2minutes = Figure()
+	fco2minutesaxis = Axis(fco2minutes[1,1],
+		title="fCO2 by minute of day",
+		xlabel="Minute of day", ylabel="fCO2")
+	xlims!(0, 1440)
+	scatter!(measurements.minuteofday, measurements.fco2)
+	
+	fco2minutes
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -129,6 +192,7 @@ DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 JSServe = "824d6782-a2ef-11e9-3a09-e5662e0c26f9"
 NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+SQLite = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
@@ -137,6 +201,7 @@ DataFrames = "~1.2.0"
 JSServe = "~1.2.3"
 NCDatasets = "~0.11.6"
 PlutoUI = "~0.7.9"
+SQLite = "~1.1.4"
 WGLMakie = "~0.4.4"
 """
 
@@ -193,6 +258,12 @@ version = "1.0.0"
 
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[[BinaryProvider]]
+deps = ["Libdl", "Logging", "SHA"]
+git-tree-sha1 = "ecdec412a9abc8db54c0efc5548c64dfce072058"
+uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
+version = "0.5.10"
 
 [[Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -279,6 +350,11 @@ version = "0.5.7"
 git-tree-sha1 = "3f71217b538d7aaee0b69ab47d9b7724ca8afa0d"
 uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 version = "4.0.4"
+
+[[DBInterface]]
+git-tree-sha1 = "d3e9099ef8d63b180a671a35552f93a1e0250cbb"
+uuid = "a10d1c49-ce27-4219-8d33-6db1a4562965"
+version = "2.4.1"
 
 [[DataAPI]]
 git-tree-sha1 = "ee400abb2298bd13bfc3df1c412ed228061a2385"
@@ -1000,6 +1076,18 @@ git-tree-sha1 = "9ba33637b24341aba594a2783a502760aa0bff04"
 uuid = "fdea26ae-647d-5447-a871-4b548cad5224"
 version = "3.3.1"
 
+[[SQLite]]
+deps = ["BinaryProvider", "DBInterface", "Dates", "Libdl", "Random", "SQLite_jll", "Serialization", "Tables", "Test", "WeakRefStrings"]
+git-tree-sha1 = "97261d38a26415048ce87f49a7a20902aa047836"
+uuid = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
+version = "1.1.4"
+
+[[SQLite_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Zlib_jll"]
+git-tree-sha1 = "9a0e24b81e3ce02c4b2eb855476467c7b93b8a8f"
+uuid = "76ed43ae-9a5d-5a62-8c75-30186b810ce8"
+version = "3.36.0+0"
+
 [[ScanByte]]
 deps = ["Libdl", "SIMD"]
 git-tree-sha1 = "9cc2955f2a254b18be655a4ee70bc4031b2b189e"
@@ -1176,6 +1264,12 @@ git-tree-sha1 = "c12ec4aaa701032f10df9abc2499da37c08dca79"
 uuid = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 version = "0.4.4"
 
+[[WeakRefStrings]]
+deps = ["DataAPI", "Random", "Test"]
+git-tree-sha1 = "28807f85197eaad3cbd2330386fac1dcb9e7e11d"
+uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
+version = "0.6.2"
+
 [[WebSockets]]
 deps = ["Base64", "Dates", "HTTP", "Logging", "Sockets"]
 git-tree-sha1 = "f91a602e25fe6b89afc93cf02a4ae18ee9384ce3"
@@ -1323,7 +1417,10 @@ version = "3.5.0+0"
 # ╠═01a80189-c661-456f-81d4-4e837128cef9
 # ╟─5bd8bd70-97b3-4831-a143-ca752bfda8f2
 # ╠═9f8929b5-5b81-401c-9edc-8536cfd4005e
+# ╟─943f1d23-c191-4d24-a785-3a98879babf3
 # ╠═b4ed129e-ed57-419f-a806-6052842a3258
 # ╟─05be1e24-5407-4787-9e34-00206a9afd45
+# ╠═2be9f730-591e-4f01-ba7b-4831cd2bc0cc
+# ╠═654bd988-635b-4ca0-8d8f-0996d75c499f
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
