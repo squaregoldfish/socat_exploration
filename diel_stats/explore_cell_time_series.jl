@@ -117,7 +117,7 @@ Below is a plot of count vs R̅ for those grid cells where the time series count
 
 # ╔═╡ 9f8929b5-5b81-401c-9edc-8536cfd4005e
 begin
-	mincount = 200
+	mincount = 1000
 	tsi_truncated = sort!(
 		subset(timeseriesinfo, :count => x -> x .≥ mincount),
 		[:R̅], rev=[true]
@@ -180,7 +180,9 @@ begin
 		title="fCO2 by minute of day",
 		xlabel="Minute of day", ylabel="fCO2")
 	xlims!(0, 1440)
-	scatter!(measurements.minuteofday, measurements.fco2)
+	scatter!(measurements.minuteofday, measurements.fco2,
+		markersize=2
+	)
 	
 	fco2minutes
 end
