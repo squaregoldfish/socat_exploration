@@ -117,10 +117,10 @@ Below is a plot of count vs R̅ for those grid cells where the time series count
 
 # ╔═╡ 9f8929b5-5b81-401c-9edc-8536cfd4005e
 begin
-	mincount = 1000
+	mincount = 200
 	tsi_truncated = sort!(
 		subset(timeseriesinfo, :count => x -> x .≥ mincount),
-		[:R̅], rev=[true]
+		[order(:R̅, rev=true), order(:count, rev=true)]
 	)
 
 	# Make the scatter plot
@@ -153,14 +153,16 @@ Lat: $(@bind celllat TextField())
 begin
 	# Retrieve cell info from database
 	measurements = DBInterface.execute(db,
-		"SELECT minuteofday, fco2 FROM socat WHERE lonindex = ? AND latindex = ?",
+		"SELECT year, minuteofday, fco2 FROM socat WHERE lonindex = ? AND latindex = ?",
 		(parse(Float64, celllon) + 0.5, parse(Float64, celllat) + 89.5)
 	) |> DataFrame
 
-	hourbins = zeros(Int64, 24)
-	for m in measurements.minuteofday
-		hour = convert(Int64, trunc(m / 1440 * 24))
-		hourbins[hour + 1] += 1
+	hoursum = zeros(Float64, 24)
+	hourcounts = zeros(Int64, 24)
+	for m in eachrow(measurements)
+		hour = convert(Int64, trunc(m.minuteofday / 1440 * 24))
+		hoursum[hour + 1] += m.fco2
+		hourcounts[hour + 1] += 1
 	end
 	
 	# Hours histogram
@@ -168,7 +170,7 @@ begin
 	hourhistaxis = Axis(hourhist[1, 1],
 		title="Distribution of measurements by hour of day",
 		xlabel="Hour of day", ylabel="# Measurements")
-	barplot!(collect(0:23), hourbins)
+	barplot!(collect(0:23), hourcounts)
 	
 	hourhist
 end
@@ -176,13 +178,19 @@ end
 # ╔═╡ 654bd988-635b-4ca0-8d8f-0996d75c499f
 begin
 	fco2minutes = Figure()
-	fco2minutesaxis = Axis(fco2minutes[1,1],
+	fco2minutesaxis = Axis(fco2minutes,
 		title="fCO2 by minute of day",
 		xlabel="Minute of day", ylabel="fCO2")
-	xlims!(0, 1440)
-	scatter!(measurements.minuteofday, measurements.fco2,
+	xlims!(fco2minutesaxis, 0, 1440)
+	fco2minutesplot = scatter!(fco2minutesaxis, measurements.minuteofday, measurements.fco2, color=measurements.year,
 		markersize=2
 	)
+	scatter!(fco2minutesaxis, collect(30:60:1440), hoursum ./ hourcounts, markersize=15)
+	
+	cbar  = Colorbar(fco2minutes, fco2minutesplot, label ="Year", height = Relative(3.55/4))
+
+	fco2minutes[1,1] = fco2minutesaxis
+	fco2minutes[1,2] = cbar
 	
 	fco2minutes
 end
