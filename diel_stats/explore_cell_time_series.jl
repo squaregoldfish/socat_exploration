@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.15.1
+# v0.16.4
 
 using Markdown
 using InteractiveUtils
@@ -28,6 +28,7 @@ begin
 	using DataFrames
 	using Statistics
 	using SQLite
+	using Printf
 
 	using WGLMakie
 	set_theme!(resolution=(680, 400))
@@ -60,7 +61,7 @@ end
 # ╔═╡ e7955031-cf60-44a9-8f5f-1162862ecbc8
 md"""
 # SOCAT Cell Time Series
-This notebook explores various aspects of the time series for grid cells in the SOCAT dataset.
+This notebook explores various aspects of the time series for grid cells in the SOCAT dataset. The question that drove the creation of this was "Are there any biases in the distribution of measurements across the day, and given the daily cycle of pCO₂ is any such bias likely to have a significant influence on the results of pCO₂ mapping algorithms?"
 
 Before running this notebook, you must run the following scripts:
 - `make_socat_database.jl` (needs a copy of the main SOCAT tsv file in the current directory)
@@ -110,7 +111,7 @@ hist(timeseriesinfo.R̅, bins=100)
 
 # ╔═╡ 5bd8bd70-97b3-4831-a143-ca752bfda8f2
 md"""
-We would expect the cells with the most time series to have a greater distribution of measurements around the clock (R̅ close to zero) than those with few time series. While this is broadly true, there are plenty of exceptions (R² = $(cor(timeseriesinfo[!, "count"], timeseriesinfo[!, "R̅"]))):
+We would expect the cells with the most time series to have a greater distribution of measurements around the clock (R̅ close to zero) than those with few time series. While this is broadly true, there are plenty of exceptions (R² = $(@sprintf("%.2f", cor(timeseriesinfo[!, "count"], timeseriesinfo[!, "R̅"])))):
 
 Below is a plot of count vs R̅ for those grid cells where the time series count ≥ 500.
 """
@@ -153,7 +154,7 @@ Lat: $(@bind celllat TextField())
 begin
 	# Retrieve cell info from database
 	measurements = DBInterface.execute(db,
-		"SELECT year, minuteofday, fco2 FROM socat WHERE lonindex = ? AND latindex = ?",
+		"SELECT year, season, dayofyear, minuteofday, fco2 FROM socat WHERE lonindex = ? AND latindex = ?",
 		(parse(Float64, celllon) + 0.5, parse(Float64, celllat) + 89.5)
 	) |> DataFrame
 
@@ -182,10 +183,10 @@ begin
 		title="fCO2 by minute of day",
 		xlabel="Minute of day", ylabel="fCO2")
 	xlims!(fco2minutesaxis, 0, 1440)
-	fco2minutesplot = scatter!(fco2minutesaxis, measurements.minuteofday, measurements.fco2, color=measurements.year,
+	fco2minutesplot = scatter!(fco2minutesaxis,
+		measurements.minuteofday, measurements.fco2, color=measurements.season,
 		markersize=2
 	)
-	scatter!(fco2minutesaxis, collect(30:60:1440), hoursum ./ hourcounts, markersize=15)
 	
 	cbar  = Colorbar(fco2minutes, fco2minutesplot, label ="Year", height = Relative(3.55/4))
 
@@ -202,6 +203,7 @@ DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 JSServe = "824d6782-a2ef-11e9-3a09-e5662e0c26f9"
 NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 SQLite = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
@@ -803,9 +805,9 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "Pkg"]
-git-tree-sha1 = "c253236b0ed414624b083e6b72bfe891fbd2c7af"
+git-tree-sha1 = "5455aef09b40e5020e1520f551fa3135040d4ed0"
 uuid = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
-version = "2021.1.1+1"
+version = "2021.1.1+2"
 
 [[Makie]]
 deps = ["Animations", "Artifacts", "Base64", "ColorBrewer", "ColorSchemes", "ColorTypes", "Colors", "Contour", "Distributions", "DocStringExtensions", "FFMPEG", "FileIO", "FixedPointNumbers", "Formatting", "FreeType", "FreeTypeAbstraction", "GeometryBasics", "GridLayoutBase", "ImageIO", "IntervalSets", "Isoband", "KernelDensity", "LaTeXStrings", "LinearAlgebra", "MakieCore", "Markdown", "Match", "MathTeXEngine", "Observables", "Packing", "PlotUtils", "PolygonOps", "Printf", "Random", "Serialization", "Showoff", "SignedDistanceFields", "SparseArrays", "StaticArrays", "Statistics", "StatsBase", "StatsFuns", "StructArrays", "UnicodeFun"]

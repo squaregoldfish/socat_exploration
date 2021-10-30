@@ -5,6 +5,11 @@ using Dates
 
 SQLITE_FILE = "socat.sqlite"
 
+DJF = 0
+MAM = 1
+JJA = 2
+SON = 3
+
 function main()
   db = initdb()
 
@@ -71,6 +76,8 @@ function main()
         doy -= 1
       end
 
+      season = getseason(doy)
+
       minofday = minuteofday(linetime)
 
       sst = parse(Float64, fields[15])
@@ -79,7 +86,7 @@ function main()
 
       SQLite.execute(db,
       "INSERT INTO socat VALUES " *
-      "($lonindex, $latindex, $year, $doy, $minofday, '$expocode', " *
+      "($lonindex, $latindex, $year, $doy, $season, $minofday, '$expocode', " *
       "$(isnan(sst) ? "NULL" : sst), $(isnan(sss) ? "NULL" : sss), " *
       "$(isnan(fco2) ? "NULL" : fco2))"
     )
@@ -113,9 +120,9 @@ function initdb()::SQLite.DB
   db = SQLite.DB(SQLITE_FILE)
 
   timeseriestable = Tables.Schema(
-    (:lonindex, :latindex, :year, :dayofyear, :minuteofday,
+    (:lonindex, :latindex, :year, :dayofyear, :season, :minuteofday,
      :expocode, :sst, :sss, :fco2),
-    Tuple{Int64,Int64,Int64,Int64,Int64,
+    Tuple{Int64,Int64,Int64,Int64,Int64,Int64,
       String,Union{Missing,Float64},Union{Missing,Float64},Union{Missing,Float64}}
   )
 
@@ -126,6 +133,20 @@ end
 
 function minuteofday(date::DateTime)::Int64
   return hour(date) * 60 + minute(date)
+end
+
+function getseason(dayofyear)::Int64
+  if dayofyear ≥ 335 || dayofyear < 60
+    return DJF
+  elseif dayofyear ≥ 60 && dayofyear < 152
+    return MAM
+  elseif dayofyear ≥ 152 && dayofyear < 244
+    return JJA
+  else
+    return SON
+  end
+
+  return result
 end
 
 main()
