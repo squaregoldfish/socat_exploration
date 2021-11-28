@@ -28,6 +28,7 @@ function main()
   end
 
   timeseriescount(nc, db, rowcount)
+  measurementcount(nc, db, rowcount)
   meanR̅(nc, db, rowcount)
 
   close(nc)
@@ -66,7 +67,6 @@ Add a variable to a NetCDF file that has lon/lat dimensions
 
 """
 function addvar(nc::NCDataset, name::String, type::Type)::NCDatasets.CFVariable
-
   return defVar(nc, name, type, ["longitude", "latitude"],
     attrib = OrderedDict("_FillValue" => convert(type, -999)))
 end
@@ -75,11 +75,10 @@ end
 Create the time series count stats
 """
 function timeseriescount(nc::NCDataset, db::SQLite.DB, rowcount::Int64)
+  println("Days Per Cell")
+  println("-------------")
 
-  println("Time Series Count")
-  println("-----------------")
-
-  countvar = addvar(nc, "count", Int32)
+  countvar = addvar(nc, "days_with_measurements", Int32)
 
   println("Searching...")
   rows = DBInterface.execute(db,
@@ -125,6 +124,50 @@ function timeseriescount(nc::NCDataset, db::SQLite.DB, rowcount::Int64)
   finish!(prog)
 
   return nothing
+end
+
+"""
+Create the measurement count stats
+"""
+function measurementcount(nc::NCDataset, db::SQLite.DB, rowcount::Int64)
+  println("Measurements Per Cell")
+  println("---------------------")
+
+  measurementcountvar = addvar(nc, "measurement_count", Int32)
+
+  println("Searching...")
+  rows = DBInterface.execute(db,
+    "SELECT lonindex, latindex FROM socat ORDER BY lonindex, latindex"
+  )
+
+  prog = Progress(rowcount, "Reading:")
+
+  currentlon = -999
+  currentlat = -999
+  measurements = 0
+
+  for row in rows
+    rowlon = row[:lonindex]
+    rowlat = row[:latindex]
+
+    if rowlon != currentlon || rowlat != currentlat
+      if currentlon != -999
+        measurementcountvar[currentlon, currentlat] = measurements
+      end
+
+      currentlon = rowlon
+      currentlat = rowlat
+      measurements = 0
+    end
+
+    measurements += 1
+
+    next!(prog)
+  end
+
+  measurementcountvar[currentlon, currentlat] = measurements
+
+  finish!(prog)
 end
 
 """
@@ -179,7 +222,6 @@ function meanR̅(nc::NCDataset, db::SQLite.DB, rowcount::Int64)
   R̅var[currentlon, currentlat] = R̅(celldegrees)
 
   finish!(prog)
-
 end
 
 """
@@ -201,10 +243,15 @@ end
 Calculate the standard deviation of a series of minutes
 """
 function R̅(degrees::Vector{Float64})::Float64
-  C = sum(cosd.(degrees))
-  S = sum(sind.(degrees))
-  R = sqrt(C^2 + S^2)
-  return R / length(degrees)
+
+  if length(degrees) == 1
+    return 1
+  else
+    C = sum(cosd.(degrees))
+    S = sum(sind.(degrees))
+    R = sqrt(C^2 + S^2)
+    return R / length(degrees)
+  end
 end
 
 main()

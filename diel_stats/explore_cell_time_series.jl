@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.16.4
+# v0.17.2
 
 using Markdown
 using InteractiveUtils
@@ -7,8 +7,9 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : missing
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
 end
@@ -38,21 +39,23 @@ end
 begin
 	# Load and prepare data
 	timeseriesinfonc = Dataset("./time_series_info.nc")
-	timeseriesinfo = DataFrame(lon=Float64[], lat=Float64[], count=Float64[], R̅=Float64[])
+	timeseriesinfo = DataFrame(lon=Float64[], lat=Float64[],
+		measurementcount=Int64[], daycount=Int64[], R̅=Float64[])
 
 	for lon in 1:360
 		for lat in 1:180
 			if !ismissing(timeseriesinfonc["minute_R̅"][lon,lat])
 				push!(timeseriesinfo,
 					[lon - 0.5, lat - 89.5,
-						timeseriesinfonc["count"][lon,lat],
+						timeseriesinfonc["measurement_count"][lon,lat],
+						timeseriesinfonc["days_with_measurements"][lon,lat],
 						timeseriesinfonc["minute_R̅"][lon,lat]
 					]
 				)
 			end
 		end
 	end
-	
+
 	# Connect to SOCAT database
 	db = SQLite.DB("./socat.sqlite")
 	nothing
@@ -107,29 +110,35 @@ $(LocalResource("./Rbar.png"))
 """
 
 # ╔═╡ 01a80189-c661-456f-81d4-4e837128cef9
-hist(timeseriesinfo.R̅, bins=100)
+begin
+	R̅hist = Figure(resolution=(680,600))
+	R̅histaxis = Axis(R̅hist[1, 1], title="Histogram of R̅",
+		xlabel="R̅", ylabel="# cells")
+	hist!(timeseriesinfo.R̅, bins=100)
+	R̅hist
+end
 
 # ╔═╡ 5bd8bd70-97b3-4831-a143-ca752bfda8f2
 md"""
-We would expect the cells with the most time series to have a greater distribution of measurements around the clock (R̅ close to zero) than those with few time series. While this is broadly true, there are plenty of exceptions (R² = $(@sprintf("%.2f", cor(timeseriesinfo[!, "count"], timeseriesinfo[!, "R̅"])))):
+We would expect the cells with the most time series to have a greater distribution of measurements around the clock (R̅ close to zero) than those with few time series. While this is broadly true, there are plenty of exceptions (R² = $(@sprintf("%.2f", cor(timeseriesinfo[!, "measurementcount"], timeseriesinfo[!, "R̅"])))):
 
 Below is a plot of count vs R̅ for those grid cells where the time series count ≥ 500.
 """
 
 # ╔═╡ 9f8929b5-5b81-401c-9edc-8536cfd4005e
 begin
-	mincount = 200
+	mincount = 0
 	tsi_truncated = sort!(
-		subset(timeseriesinfo, :count => x -> x .≥ mincount),
-		[order(:R̅, rev=true), order(:count, rev=true)]
+		subset(timeseriesinfo, :measurementcount => x -> x .≥ mincount),
+		[order(:R̅, rev=true), order(:measurementcount, rev=true)]
 	)
 
 	# Make the scatter plot
-	R̅vscount = Figure(resolution=(680,400))
+	R̅vscount = Figure(resolution=(680,600))
 	R̅vscountaxis = Axis(R̅vscount[1, 1], title="R̅ for cells with time series count ≥ $(mincount)",
-		xscale=log10, xlabel="Count", ylabel="R̅", ylims=(0,1))
-	scatter!(tsi_truncated.count, tsi_truncated.R̅)
-	
+		xscale=log10, xlabel="Measurement Count", ylabel="R̅", ylims=(0,1))
+	scatter!(tsi_truncated.measurementcount, tsi_truncated.R̅, markersize=2.25)
+
 	R̅vscount
 end
 
@@ -165,21 +174,21 @@ begin
 		hoursum[hour + 1] += m.fco2
 		hourcounts[hour + 1] += 1
 	end
-	
+
 	# Hours histogram
 	hourhist = Figure(resolution=(680,400))
 	hourhistaxis = Axis(hourhist[1, 1],
 		title="Distribution of measurements by hour of day",
 		xlabel="Hour of day", ylabel="# Measurements")
 	barplot!(collect(0:23), hourcounts)
-	
+
 	hourhist
 end
 
 # ╔═╡ 654bd988-635b-4ca0-8d8f-0996d75c499f
 begin
-	fco2minutes = Figure()
-	fco2minutesaxis = Axis(fco2minutes,
+	fco2minutes = Figure(resolution=(680,400))
+	fco2minutesaxis = Axis(fco2minutes[1,1],
 		title="fCO2 by minute of day",
 		xlabel="Minute of day", ylabel="fCO2")
 	xlims!(fco2minutesaxis, 0, 1440)
@@ -187,12 +196,13 @@ begin
 		measurements.minuteofday, measurements.fco2, color=measurements.season,
 		markersize=2
 	)
-	
-	cbar  = Colorbar(fco2minutes, fco2minutesplot, label ="Year", height = Relative(3.55/4))
 
-	fco2minutes[1,1] = fco2minutesaxis
-	fco2minutes[1,2] = cbar
-	
+	#cbar  = Colorbar(fco2minutes, fco2minutesplot, label="Year",
+	#	height = Relative(3.55/4))
+
+	#fco2minutes[1,1] = fco2minutesaxis
+	#fco2minutes[1,2] = cbar
+
 	fco2minutes
 end
 
@@ -750,9 +760,9 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 
 [[Libffi_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "761a393aeccd6aa92ec3515e428c26bf99575b3b"
+git-tree-sha1 = "0b4a5d71f3e5200a7dff793393e09dfc2d874290"
 uuid = "e9f186c6-92d2-5b65-8a66-fee21dc1b490"
-version = "3.2.2+0"
+version = "3.2.2+1"
 
 [[Libgcrypt_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgpg_error_jll", "Pkg"]
