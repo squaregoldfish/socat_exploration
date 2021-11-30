@@ -247,10 +247,9 @@ function R̅(degrees::Vector{Float64})::Float64
   if length(degrees) == 1
     return 1
   else
-    C = sum(cosd.(degrees))
-    S = sum(sind.(degrees))
-    R = sqrt(C^2 + S^2)
-    return R / length(degrees)
+    C = sum(cosd.(degrees)) / length(degrees)
+    S = sum(sind.(degrees)) / length(degrees)
+    return sqrt(C^2 + S^2)
   end
 end
 
